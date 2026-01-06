@@ -1,0 +1,1 @@
+matlab -nodisplay -singleCompThread -r "create_synthetic_data_3d_for_CNMF_poisson(500,0.1,2)"

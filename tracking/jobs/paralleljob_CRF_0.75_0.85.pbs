@@ -1,0 +1,44 @@
+#PBS -N CRF_track_0.75_0.85
+#PBS -q joe
+#PBS -l walltime=48:00:00
+#PBS -l nodes=1:ppn=4
+#PBS -j oe
+#PBS -o parameter_search.$PBS_JOBID
+
+cd $PBS_O_WORKDIR
+module load matlab/r2016a
+NP=$(wc -l < $PBS_NODEFILE)
+
+#JOBFILE, BATCHSIZE, and BATCHNUM should be set in the environment
+#If they are not, use some defaults.
+# By setting BATCHSIZE to a default of the length of the jobfile we only require one of these jobs.
+# The user can submit multiple jobs and split up the batchcount to work on multiple nodes.
+JOBFILE=${JOBFILE:-jobs_CRF_alltoone_0.75_0.85.txt}
+
+if [ ! -f $JOBFILE ]; then echo "File $JOBFILE does not exist. Exiting"; exit 0; fi
+
+BATCHSIZE=${BATCHSIZE:-$(wc -l < $JOBFILE)}
+BATCHNUM=${BATCHNUM:-0}
+
+JOBCOUNT=$(wc -l < $JOBFILE)
+
+ENDLINE=$(($BATCHSIZE*$BATCHNUM + $BATCHSIZE))
+
+if [ $ENDLINE -gt $JOBCOUNT ]
+then
+
+  if [ $(($ENDLINE-$BATCHSIZE)) -gt $JOBCOUNT ]
+  then
+    echo "Given \"BATCHNUM\" is greater than the number of possible batches. Exiting..."
+    exit 0
+  fi
+
+  DIFFERENCE=$(($ENDLINE-$JOBCOUNT))
+  REMAININGJOBCOUNT=$(($BATCHSIZE-$DIFFERENCE))
+
+fi
+
+BATCHSIZE=${REMAININGJOBCOUNT:-$BATCHSIZE}
+
+head -n $ENDLINE $JOBFILE | tail -n $BATCHSIZE | /usr/local/pacerepov1/gnuparallel/20110822/bin/parallel -j $NP -k 
+
